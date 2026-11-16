@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Byte-compile runtime modules
+        run: python -m compileall -q src main.py web_server.py
+
+      - name: Run tests
+        # 不设置 RUN_REAL_API，真实模型用例会自动跳过
+        run: python -m pytest tests/ -q
+
+      - name: Run coverage
+        run: |
+          coverage run --source=src -m pytest tests/ -q
+          coverage report --fail-under=85

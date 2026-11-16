@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#20231f">
+    <meta name="description" content="Minimal Agent 本地对话工作台，查看 ReAct 执行轨迹与工具调用。">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2320231f'/%3E%3Cpath d='M15 25V15h10M39 15h10v10M49 39v10H39M25 49H15V39' fill='none' stroke='%23e77950' stroke-width='4'/%3E%3Ccircle cx='25' cy='32' r='4' fill='%23f4f1e9'/%3E%3Ccircle cx='39' cy='32' r='4' fill='%23f4f1e9'/%3E%3C/svg%3E">
+    <title>Minimal Agent · 本地工作台</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到对话区域</a>
+
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand" aria-label="Minimal Agent">
+          <svg class="brand__mark" viewBox="0 0 40 40" aria-hidden="true">
+            <path d="M7 12V7h5M28 7h5v5M33 28v5h-5M12 33H7v-5" />
+            <circle cx="14" cy="20" r="3" />
+            <circle cx="26" cy="20" r="3" />
+            <path d="M17 20h6" />
+          </svg>
+          <div class="brand__wordmark">
+            <strong>MINIMAL AGENT</strong>
+            <span>REACT WORKSPACE</span>
+          </div>
+        </div>
+
+        <nav class="topbar__actions" aria-label="工作台视图控制">
+          <button class="button button--icon sessions-toggle" id="sessions-toggle" type="button"
+            aria-label="打开会话导航" aria-controls="session-sidebar" aria-expanded="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
+          </button>
+          <button class="health-status" id="health-button" type="button" title="重新检测服务状态">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="health-label">正在连接</span>
+            <span class="health-status__model" id="model-label">本地服务</span>
+          </button>
+          <button class="button button--icon inspector-toggle" id="inspector-toggle" type="button"
+            aria-label="打开执行轨迹" aria-controls="inspector" aria-expanded="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5zM9 9h6M9 13h6M9 17h3" /></svg>
+          </button>
+        </nav>
+      </header>
+
+      <div class="workspace">
+        <aside class="session-sidebar" id="session-sidebar" aria-label="会话导航">
+          <div class="sidebar__heading">
+            <div>
+              <span class="eyebrow eyebrow--dark">WORKSPACE</span>
+              <h2>我的会话</h2>
+            </div>
+            <button class="button button--icon drawer-close" type="button" data-close-drawer
+              aria-label="关闭会话导航">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+            </button>
+          </div>
+
+          <button class="new-session-button" id="new-session-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            <span>新建会话</span>
+            <span class="new-session-button__key" aria-hidden="true">N</span>
+          </button>
+
+          <div class="section-heading">
+            <h3>最近会话</h3>
+            <button class="icon-button icon-button--dark" id="refresh-sessions-button" type="button"
+              aria-label="刷新会话列表" title="刷新会话列表">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2 5.3M20 5v6h-6" /></svg>
+            </button>
+          </div>
+
+          <nav class="session-nav" aria-label="已有会话">
+            <div class="session-list" id="session-list" aria-live="polite">
+              <div class="session-skeleton" aria-label="正在加载会话"><span></span><span></span><span></span></div>
+            </div>
+          </nav>
+
+          <div class="sidebar__footer">
+            <div class="local-note">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8 7 10 4.2-2 7-5.4 7-10V6zM9 12l2 2 4-4" /></svg>
+              <div><strong>仅在本机运行</strong><span>内存会话 · 重启后清空</span></div>
+            </div>
+            <span class="sidebar__version">CORE / REACT LOOP</span>
+          </div>
+        </aside>
+
+        <main class="conversation" id="main-content">
+          <header class="conversation__header">
+            <div class="conversation__identity">
+              <span class="eyebrow">ACTIVE SESSION</span>
+              <div class="conversation__title-row">
+                <h1 id="session-title">准备工作台</h1>
+                <span class="session-count" id="session-count">0 条消息</span>
+              </div>
+            </div>
+            <button class="button button--secondary reset-button" id="reset-button" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M5.5 15a7 7 0 1 0 .5-7" /></svg>
+              <span>清空对话</span>
+            </button>
+          </header>
+
+          <div class="configuration-banner" id="configuration-banner" role="status" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5M12 17h.01M10.3 4.6 2.8 18a2 2 0 0 0 1.8 3h14.8a2 2 0 0 0 1.8-3L13.7 4.6a2 2 0 0 0-3.4 0Z" /></svg>
+            <p><strong>尚未配置模型密钥</strong><span>请在项目 .env 中设置 LLM_API_KEY，然后重启服务。</span></p>
+          </div>
+
+          <div class="error-banner" id="error-banner" role="alert" hidden>
+            <p id="error-message"></p>
+            <button class="icon-button" id="dismiss-error-button" type="button" aria-label="关闭错误提示">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+            </button>
+          </div>
+
+          <section class="message-scroll" id="message-scroll" aria-label="对话消息" aria-live="polite" aria-busy="true">
+            <div class="message-list" id="message-list">
+              <div class="initial-loading"><span class="loader" aria-hidden="true"></span><p>正在连接 Agent 核心模块</p></div>
+            </div>
+          </section>
+
+          <footer class="composer-area">
+            <form class="composer" id="chat-form">
+              <label class="sr-only" for="message-input">向 Agent 描述任务</label>
+              <textarea id="message-input" name="message" rows="1" maxlength="4000"
+                placeholder="描述一个任务，Agent 会自主决定是否调用工具…" required></textarea>
+              <div class="composer__bottom">
+                <div class="composer__hint">
+                  <span><kbd>Enter</kbd> 发送</span>
+                  <span><kbd>Shift</kbd> + <kbd>Enter</kbd> 换行</span>
+                </div>
+                <span class="character-count" id="character-count">0 / 4000</span>
+                <button class="send-button" id="send-button" type="submit" disabled>
+                  <span>发送</span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-4 14-3-5zM12 14l7-9" /></svg>
+                </button>
+              </div>
+            </form>
+            <p class="composer-note">模型输出可能存在误差，请核对重要信息。执行细节可在右侧轨迹中查看。</p>
+          </footer>
+        </main>
+
+        <aside class="inspector" id="inspector" aria-label="Agent 运行检查器">
+          <div class="inspector__heading">
+            <div>
+              <span class="eyebrow">OBSERVER</span>
+              <h2>运行检查器</h2>
+            </div>
+            <button class="button button--icon drawer-close" type="button" data-close-drawer
+              aria-label="关闭运行检查器">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+            </button>
+          </div>
+
+          <div class="inspector-tabs" role="tablist" aria-label="检查器内容">
+            <button id="trace-tab" type="button" role="tab" aria-selected="true" aria-controls="trace-panel"
+              data-inspector-tab="trace">执行轨迹 <span id="trace-count">0</span></button>
+            <button id="tools-tab" type="button" role="tab" aria-selected="false" aria-controls="tools-panel"
+            data-inspector-tab="tools" tabindex="-1">可用工具 <span id="tools-count">0</span></button>
+          </div>
+
+          <section class="inspector-panel" id="trace-panel" role="tabpanel" aria-labelledby="trace-tab">
+            <div class="trace-intro"><span class="live-dot" aria-hidden="true"></span>记录模型决策与工具调用</div>
+            <ol class="trace-list" id="trace-list"></ol>
+          </section>
+
+          <section class="inspector-panel" id="tools-panel" role="tabpanel" aria-labelledby="tools-tab" hidden>
+            <p class="panel-description">工具 Schema 直接来自 ToolRegistry，Agent 根据任务自主调用。</p>
+            <div class="tool-list" id="tool-list"></div>
+          </section>
+
+          <div class="inspector__footer">
+            <span>MAX STEPS <strong>10</strong></span>
+            <span>MEMORY <strong>IN-PROCESS</strong></span>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <button class="drawer-backdrop" id="drawer-backdrop" type="button" aria-label="关闭侧边栏" hidden></button>
+
+    <template id="empty-state-template">
+      <div class="empty-state">
+        <span class="empty-state__index">MINIMAL / 001</span>
+        <h2>把任务交给 Agent，<br>看清每一步。</h2>
+        <p>不是简单的问答窗口。这里能观察模型如何决策、调用工具，再整理出最终回答。</p>
+        <div class="react-flow" aria-label="ReAct 工作流程">
+          <span><b>01</b>理解任务</span><i aria-hidden="true"></i>
+          <span><b>02</b>调用工具</span><i aria-hidden="true"></i>
+          <span><b>03</b>生成回答</span>
+        </div>
+        <div class="prompt-examples" aria-label="示例任务">
+          <button type="button" data-prompt="请计算 (128 + 64) × 3，并说明计算过程。">
+            <span>安全计算</span><strong>(128 + 64) × 3</strong>
+          </button>
+          <button type="button" data-prompt="请搜索 ReAct 的核心思路，并简要总结。">
+            <span>搜索工具</span><strong>了解 ReAct 核心思路</strong>
+          </button>
+          <button type="button" data-prompt="帮我创建一份 Agent 学习待办清单，包含理解 ReAct、熟悉工具和完成测试。">
+            <span>待办管理</span><strong>创建 Agent 学习清单</strong>
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <dialog class="confirm-dialog" id="reset-dialog" aria-labelledby="reset-dialog-title">
+      <form method="dialog">
+        <span class="eyebrow">RESET SESSION</span>
+        <h2 id="reset-dialog-title">清空当前对话？</h2>
+        <p>当前会话的消息将被清空，已有执行轨迹会保留。此操作无法撤销。</p>
+        <div class="confirm-dialog__actions">
+          <button class="button button--secondary" value="cancel">取消</button>
+          <button class="button button--danger" id="confirm-reset-button" type="button">确认清空</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <noscript><div class="noscript-message">请启用 JavaScript 以使用 Minimal Agent 工作台。</div></noscript>
+  </body>
+</html>

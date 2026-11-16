@@ -1,0 +1,7 @@
+-r requirements.txt
+
+# 开发与测试工具（部署运行时不需要）
+pytest>=8.0.0
+coverage>=7.4
+ruff>=0.5
+mypy>=1.10
